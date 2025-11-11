@@ -110,5 +110,22 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the full DocRes pipeline: Train, Generate, Evaluate.")
+    
+    # Add arguments from parse_args.py
+    parser.add_argument('--run_name', type=str, default='', help='Unique name for the training run.')
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
+    parser.add_argument('--project_name', type=str, default='DocRes')
+    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--alpha', default=1e-2, type=float)
+    parser.add_argument('--image_size', type=int, default=288)
+    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--warmup_steps', type=int, default=1000)
+    parser.add_argument('--num_epochs', type=int, default=10)
+    parser.add_argument('--log_freq', type=int, default=1)
+    parser.add_argument('--output_dir', type=str, default='logs')
+    parser.add_argument('--dataset_name', type=str, default='./data/doc3d')
+    parser.add_argument('--gpu_ids', type=str, default='0,1')
+    
     args = parser.parse_args()
     main(args)
