@@ -1,6 +1,6 @@
 import os
 os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
-os.environ['WANDB_MODE'] = 'OFFLINE'
+os.environ['WANDB_MODE'] = 'online'
 os.environ['NCCL_P2P_DISABLE'] = '1'
 os.environ['NCCL_IB_DISABLE'] = '1'  # Disable InfiniBand for better stability
 os.environ['CUDA_LAUNCH_BLOCKING'] = '0'  # Enable async CUDA operations
