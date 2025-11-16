@@ -200,6 +200,9 @@ def main(args):
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
+    # Ensure output directory exists before creating project subdirectory
+    os.makedirs(args.output_dir, exist_ok=True)
+
     unique_id = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
     if not args.run_name:
         args.run_name = f"ddim_fast_{unique_id}"
@@ -220,8 +223,11 @@ def main(args):
         log_with='wandb',
         mixed_precision='fp16',
     )
-    
+
+    # Ensure project directory exists for pipeline to find it
     if accelerator.is_main_process:
+        os.makedirs(accelerator_config.project_dir, exist_ok=True)
+
         accelerator.init_trackers(
             project_name=args.project_name,
             config=vars(args),
