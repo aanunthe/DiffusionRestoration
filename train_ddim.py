@@ -327,7 +327,13 @@ def main(args):
     for epoch in tqdm(range(args.num_epochs), leave=False, disable=not accelerator.is_main_process, desc='Epochs'):
         model.train()
         
+        # REMOVE THIS TO RUN IT LIKE PREVIOUSLY
+        max_steps_per_epoch = 20
+
         for step, batch in enumerate(tqdm(train_dataloader, leave=False, disable=not accelerator.is_main_process, desc='Data')):
+            if step >= max_steps_per_epoch:
+                break
+
             # Move data to device efficiently
             img = batch['img']
             latent = batch['bm']
