@@ -193,16 +193,11 @@ def setup_distributed():
     return rank, world_size, local_rank
 
 def main(args):
-    # Setup for 4-GPU training
-    if args.gpu_ids == "0,1,2,3":
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_ids
-        # Enable optimizations for multi-GPU
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-    else:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_ids
-    
+    # Enable optimizations for multi-GPU
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+
     unique_id = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
     if not args.run_name:
         args.run_name = f"ddim_fast_{unique_id}"
@@ -441,29 +436,45 @@ def evaluate(args, epoch, encoder_hidden_states, img, pipeline, accelerator, glo
     pipeline.unet.train()  # Return to training mode
 
 def launch_training():
-    """Launch training with proper 4-GPU setup"""
+    """Launch training with proper GPU setup"""
     args = parse_args()
-    
-    # Automatically set up for 4-GPU training if available
-    if torch.cuda.device_count() >= 4 and args.gpu_ids == "0,1,2,3":
-        print(f"Detected {torch.cuda.device_count()} GPUs. Setting up 4-GPU training...")
-        
+
+    # CRITICAL: Set CUDA_VISIBLE_DEVICES before any CUDA operations
+    # This must happen before torch.cuda.device_count() or any CUDA initialization
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_ids
+
+    # Clear any existing distributed training environment variables that might
+    # cause Accelerator to expect more processes than we're actually running
+    for key in ['RANK', 'WORLD_SIZE', 'LOCAL_RANK', 'MASTER_ADDR', 'MASTER_PORT']:
+        if key in os.environ:
+            del os.environ[key]
+
+    # Set a reasonable timeout for distributed initialization (default is 1800s)
+    # This will cause faster failure if there's a configuration issue
+    os.environ.setdefault('NCCL_TIMEOUT', '300')  # 5 minutes instead of 30
+
+    # Now check how many GPUs are visible after setting CUDA_VISIBLE_DEVICES
+    num_gpus = torch.cuda.device_count()
+
+    if num_gpus >= 4 and args.gpu_ids == "0,1,2,3":
+        print(f"Detected {num_gpus} GPUs. Setting up 4-GPU training...")
+
         # Set environment variables for optimal 4-GPU performance
         os.environ['NCCL_TREE_THRESHOLD'] = '0'
         os.environ['NCCL_ALGO'] = 'Tree'
         os.environ['NCCL_MIN_NCHANNELS'] = '4'
         os.environ['NCCL_MAX_NCHANNELS'] = '16'
-        
+
         # Increase batch size for 4-GPU training
         if args.batch_size < 8:
             print(f"Increasing batch size from {args.batch_size} to {args.batch_size * 4} for 4-GPU training")
             args.batch_size = args.batch_size * 4
-            
-    elif torch.cuda.device_count() > 1:
-        print(f"Detected {torch.cuda.device_count()} GPUs. Using available GPUs...")
+
+    elif num_gpus > 1:
+        print(f"Detected {num_gpus} GPUs. Using available GPUs...")
     else:
         print("Single GPU training")
-    
+
     main(args)
 
 if __name__ == "__main__":
