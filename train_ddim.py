@@ -4,6 +4,8 @@ os.environ['WANDB_MODE'] = 'online'
 os.environ['NCCL_P2P_DISABLE'] = '1'
 os.environ['NCCL_IB_DISABLE'] = '1'  # Disable InfiniBand for better stability
 os.environ['CUDA_LAUNCH_BLOCKING'] = '0'  # Enable async CUDA operations
+# Memory optimization: prevent fragmentation and enable expandable segments
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -236,12 +238,12 @@ def main(args):
     
     # Optimized DataLoader for multi-GPU training
     train_dataloader = DataLoader(
-        dataset, 
+        dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=min(8, mp.cpu_count()),  # Optimal number of workers
+        num_workers=2,  # Reduced to save memory
         pin_memory=True,  # Faster GPU transfer
-        persistent_workers=True,  # Keep workers alive between epochs
+        persistent_workers=False,  # Disabled to save memory
         prefetch_factor=2,  # Prefetch batches
         drop_last=True,  # Ensure consistent batch sizes across GPUs
     )
@@ -265,6 +267,9 @@ def main(args):
         only_cross_attention=False,
         upcast_attention=False,  # Keep attention in fp16
     )
+
+    # Enable gradient checkpointing to save memory
+    model.enable_gradient_checkpointing()
     
     # Load CLIP model for conditioning with optimizations
     processor = CLIPProcessor.from_pretrained('openai/clip-vit-large-patch14')
@@ -318,7 +323,10 @@ def main(args):
     
     # Training Loop with optimizations
     global_step = 0
-    
+
+    # Clear CUDA cache before training starts
+    torch.cuda.empty_cache()
+
     for epoch in tqdm(range(args.num_epochs), leave=False, disable=not accelerator.is_main_process, desc='Epochs'):
         model.train()
         
@@ -383,6 +391,10 @@ def main(args):
 
                 if accelerator.sync_gradients:
                     global_step += 1
+
+                # Clear CUDA cache periodically to prevent fragmentation
+                if global_step % 10 == 0:
+                    torch.cuda.empty_cache()
 
             if accelerator.is_main_process and global_step % args.log_freq == 0:
                 accelerator.log({
@@ -471,10 +483,10 @@ def launch_training():
         os.environ['NCCL_MIN_NCHANNELS'] = '4'
         os.environ['NCCL_MAX_NCHANNELS'] = '16'
 
-        # Increase batch size for 4-GPU training
+        # Increase batch size for 4-GPU training (conservative multiplier to avoid OOM)
         if args.batch_size < 8:
-            print(f"Increasing batch size from {args.batch_size} to {args.batch_size * 4} for 4-GPU training")
-            args.batch_size = args.batch_size * 4
+            print(f"Increasing batch size from {args.batch_size} to {args.batch_size * 2} for 4-GPU training")
+            args.batch_size = args.batch_size * 2
 
     elif num_gpus > 1:
         print(f"Detected {num_gpus} GPUs. Using available GPUs...")
