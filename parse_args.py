@@ -48,7 +48,7 @@ def parse_args():
         '--output_dir', type=str, default='logs', help='', 
     )
     parser.add_argument(
-        '--dataset_name', type=str, default='/home/my-user/doc3d_dataset', help='', 
+        '--dataset_name', type=str, default='./data/uds-rift-cat-munchkin-250914', help='', 
     )
     parser.add_argument(
         '--gpu_ids', type=str, default='0,1,2,3', help='',

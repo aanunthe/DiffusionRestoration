@@ -30,8 +30,8 @@ def main(args):
     if not run_name:
         # Generate a unique name if not provided, similar to train_ddim.py
         import datetime
-        unique_id = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
-        run_name = f"ddim_fast_{unique_id}"
+        #unique_id = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
+        run_name = f"ddim_fast_{args.run_name}"
         print(f"No run_name provided, using generated name: {run_name}")
 
     train_command = [
@@ -61,7 +61,7 @@ def main(args):
         return
 
     print("--- STEP 2: Finding Latest Checkpoint ---")
-    latest_checkpoint_path = find_latest_checkpoint(args.output_dir, run_name)
+    latest_checkpoint_path = find_latest_checkpoint(args.output_dir, f"ddim_fast_{args.run_name}")
     
     if latest_checkpoint_path is None:
         print("Aborting pipeline.")
