@@ -51,7 +51,7 @@ def parse_args():
         '--dataset_name', type=str, default='/home/my-user/doc3d_dataset', help='', 
     )
     parser.add_argument(
-        '--gpu_ids', type=str, default='0,1', help='', 
+        '--gpu_ids', type=str, default='0,1,2,3', help='',
     )
     
     
