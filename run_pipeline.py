@@ -3,18 +3,35 @@ import subprocess
 import argparse
 import glob
 
-def find_latest_checkpoint(log_dir, run_name):
-    """Finds the latest checkpoint directory in the log folder."""
-    run_dir = os.path.join(log_dir, run_name)
+def find_latest_checkpoint(log_dir, run_name_pattern):
+    """Finds the latest checkpoint directory in the log folder.
+
+    Args:
+        log_dir: The base log directory (e.g., 'logs')
+        run_name_pattern: Pattern to match run directories (e.g., 'ddim_fast_running')
+                         Will find the most recent directory matching this pattern
+    """
+    # Find all directories matching the pattern (accounting for timestamp suffix)
+    pattern = os.path.join(log_dir, f"{run_name_pattern}*")
+    matching_dirs = glob.glob(pattern)
+
+    if not matching_dirs:
+        print(f"Error: No run directories found matching pattern: {pattern}")
+        return None
+
+    # Find the most recently created directory
+    run_dir = max(matching_dirs, key=os.path.getmtime)
+    print(f"Found run directory: {run_dir}")
+
     if not os.path.isdir(run_dir):
         print(f"Error: Run directory not found: {run_dir}")
         return None
-    
+
     checkpoint_dirs = glob.glob(os.path.join(run_dir, "checkpoint-*"))
     if not checkpoint_dirs:
         print(f"Error: No checkpoints found in {run_dir}")
         return None
-        
+
     # Find the one with the highest step number
     latest_checkpoint = max(checkpoint_dirs, key=lambda d: int(d.split('-')[-1]))
     print(f"Found latest checkpoint: {latest_checkpoint}")
@@ -22,21 +39,16 @@ def find_latest_checkpoint(log_dir, run_name):
 
 def main(args):
     """Runs the full training and evaluation pipeline."""
-    
+
     print("--- STEP 1: Starting Training ---")
-    
-    # Use the provided run_name or the one from train_ddim.py default
-    run_name = args.run_name
-    if not run_name:
-        # Generate a unique name if not provided, similar to train_ddim.py
-        import datetime
-        #unique_id = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
-        run_name = f"ddim_fast_{args.run_name}"
-        print(f"No run_name provided, using generated name: {run_name}")
+
+    # train_ddim.py will add "ddim_fast_" prefix and timestamp
+    # We just pass the base run_name (or empty string)
+    run_name_base = args.run_name if args.run_name else ""
 
     train_command = [
         "python", "train_ddim.py",
-        "--run_name", run_name,
+        "--run_name", run_name_base,
         "--gradient_accumulation_steps", str(args.gradient_accumulation_steps),
         "--project_name", args.project_name,
         "--seed", str(args.seed),
@@ -51,7 +63,7 @@ def main(args):
         "--dataset_name", args.dataset_name,
         "--gpu_ids", args.gpu_ids,
     ]
-    
+
     try:
         subprocess.run(train_command, check=True)
         print("--- STEP 1: Training Finished Successfully ---")
@@ -61,14 +73,27 @@ def main(args):
         return
 
     print("--- STEP 2: Finding Latest Checkpoint ---")
-    latest_checkpoint_path = find_latest_checkpoint(args.output_dir, f"ddim_fast_{args.run_name}")
-    
+    # The training script creates directories like:
+    # - "ddim_fast_{timestamp}" if no run_name
+    # - "ddim_fast_{run_name}_{timestamp}" if run_name provided
+    if run_name_base:
+        search_pattern = f"ddim_fast_{run_name_base}"
+    else:
+        search_pattern = "ddim_fast"
+
+    latest_checkpoint_path = find_latest_checkpoint(args.output_dir, search_pattern)
+
     if latest_checkpoint_path is None:
         print("Aborting pipeline.")
         return
 
+    # Extract the actual run directory name from the checkpoint path
+    # checkpoint path is like: logs/ddim_fast_running_2025.11.16_12.34.56/checkpoint-100
+    run_dir = os.path.dirname(latest_checkpoint_path)
+    run_name = os.path.basename(run_dir)
+
     print("--- STEP 3: Generating Images for Evaluation ---")
-    eval_output_dir = os.path.join(args.output_dir, run_name, "evaluation_images")
+    eval_output_dir = os.path.join(run_dir, "evaluation_images")
     
     generate_command = [
         "python", "generate_eval_images.py",
