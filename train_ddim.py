@@ -1,4 +1,5 @@
 import os
+import glob
 os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
 os.environ['WANDB_MODE'] = 'online'
 os.environ['NCCL_P2P_DISABLE'] = '1'
@@ -419,6 +420,14 @@ def main(args):
                 pipeline = FastDDIMPipeline(accelerator.unwrap_model(model), noise_scheduler)
                 evaluate(args, epoch, encoder_hidden_states, img, pipeline, accelerator, global_step)
         accelerator.wait_for_everyone()
+
+    # Save final checkpoint if no checkpoint was saved during training
+    # This ensures the pipeline always has at least one checkpoint to find
+    if accelerator.is_main_process:
+        checkpoint_dirs = glob.glob(os.path.join(accelerator_config.project_dir, "checkpoint-*"))
+        if not checkpoint_dirs:
+            print(f"No checkpoints saved during training. Saving final checkpoint at step {global_step}...")
+            accelerator.save_state(os.path.join(accelerator_config.project_dir, f"checkpoint-{global_step}"))
 
 
 
