@@ -7,16 +7,16 @@ def parse_args():
         '--run_name', type=str, default='', help='', 
     )   
     parser.add_argument(
-        '--gradient_accumulation_steps', type=int, default=1, help='', 
+        '--gradient_accumulation_steps', type=int, default=2, help='Increased to reduce memory usage',
     )
     parser.add_argument(
-        '--project_name', type=str, default='DocRes', help='', 
+        '--project_name', type=str, default='DocRes', help='',
     )
     parser.add_argument(
-        '--seed', type=int, default=0, help='', 
+        '--seed', type=int, default=0, help='',
     )
     parser.add_argument(
-        '--batch_size', type=int, default=8, help=''
+        '--batch_size', type=int, default=4, help='Reduced to prevent OOM errors'
     )
     
     parser.add_argument(
