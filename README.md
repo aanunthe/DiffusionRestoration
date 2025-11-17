@@ -8,13 +8,26 @@ Diffusion-based document restoration using the Doc3D dataset. This system learns
 
 **Important:** This project uses `opencv-python-headless` to work in headless/server environments without OpenGL dependencies.
 
-Run the setup script to configure your environment:
+**RECOMMENDED - Automated setup:**
 
 ```bash
 bash setup_environment.sh
 ```
 
-Or manually install dependencies:
+This script will:
+- Remove any existing `opencv-python` packages (which require OpenGL)
+- Install `opencv-python-headless` (works without OpenGL)
+- Install all other required dependencies from `requirements.txt`
+
+**Alternative - Check dependencies interactively:**
+
+```bash
+python check_dependencies.py
+```
+
+This will check all dependencies and offer to fix any issues automatically.
+
+**Manual installation:**
 
 ```bash
 # Remove opencv-python if installed (it requires OpenGL)
@@ -52,42 +65,92 @@ python run_pipeline.py \
 
 ## Troubleshooting
 
-### OpenGL/libGL.so.1 Error
+### Error: "No module named 'cv2'"
+
+If you see this error:
+```
+ModuleNotFoundError: No module named 'cv2'
+```
+
+**Cause:** OpenCV is not installed in your Python environment.
+
+**Solution (choose one):**
+
+1. **Automated fix (recommended):**
+   ```bash
+   bash setup_environment.sh
+   ```
+
+2. **Interactive check:**
+   ```bash
+   python check_dependencies.py
+   ```
+
+3. **Manual installation:**
+   ```bash
+   pip install opencv-python-headless>=4.8.0
+   ```
+
+### Error: OpenGL/libGL.so.1
 
 If you see this error:
 ```
 ImportError: libGL.so.1: cannot open shared object file: No such file or directory
 ```
 
-**Cause:** Your environment has `opencv-python` installed instead of `opencv-python-headless`.
+**Cause:** Your environment has `opencv-python` (requires OpenGL) instead of `opencv-python-headless`.
 
 **Solution:**
+
+1. **Quick fix:**
+   ```bash
+   bash fix_opencv.sh
+   ```
+
+2. **Manual fix:**
+   ```bash
+   pip uninstall -y opencv-python opencv-contrib-python
+   pip install opencv-python-headless>=4.8.0
+   ```
+
+### Verify Your Setup
+
+To check if all dependencies are correctly installed:
+
 ```bash
-pip uninstall -y opencv-python opencv-contrib-python
-pip install opencv-python-headless>=4.8.0
+python check_dependencies.py
 ```
 
-Or simply run:
+This will verify all required packages and offer to fix any issues.
+
+### Run Training with Automatic Checks
+
+Use the wrapper script to automatically verify dependencies before training:
+
 ```bash
-bash setup_environment.sh
+python run_with_check.py train_ddim.py --dataset_name /path/to/data [other args...]
 ```
 
-### Missing Dependencies
-
-If you encounter import errors, reinstall all requirements:
-```bash
-pip install -r requirements.txt
-```
+This will check for OpenCV before starting training and provide clear error messages if dependencies are missing.
 
 ## Project Structure
 
+### Training Scripts
 - `train_ddim.py` - DDIM-based diffusion training
 - `train.py` - DDPM-based diffusion training
 - `train_encoder.py` - Direct encoder-decoder training
 - `run_pipeline.py` - Full pipeline: train → generate → evaluate
+
+### Core Modules
 - `data_loader.py` - Doc3D dataset loader
 - `model.py` - Neural network architectures
 - `utils.py` - Utility functions and custom pipelines
+
+### Setup & Helper Scripts
+- `setup_environment.sh` - Complete environment setup (recommended)
+- `fix_opencv.sh` - Quick fix for OpenCV/OpenGL issues
+- `check_dependencies.py` - Interactive dependency checker
+- `run_with_check.py` - Training wrapper with dependency validation
 
 ## Key Features
 
