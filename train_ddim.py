@@ -338,7 +338,7 @@ def main(args):
         model.train()
         
         # REMOVE THIS TO RUN IT LIKE PREVIOUSLY
-        max_steps_per_epoch = 20
+        max_steps_per_epoch = 100
 
         for step, batch in enumerate(tqdm(train_dataloader, leave=False, disable=not accelerator.is_main_process, desc='Data')):
             if step >= max_steps_per_epoch:
