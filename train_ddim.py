@@ -149,7 +149,7 @@ class FastDDIMPipeline(DiffusionPipeline):
             compiled_unet = self.unet
 
         # Batch processing for faster inference
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast('cuda'):
             for t in self.progress_bar(self.scheduler.timesteps):
                 # 1. predict noise model_output
                 model_output = compiled_unet(image, t, encoder_hidden_states=prompt_embeds).sample
@@ -351,7 +351,7 @@ def main(args):
             img_normalized = (img + 1.0) / 2.0
             
             # Pre-compute CLIP features with caching
-            with torch.no_grad(), torch.cuda.amp.autocast():
+            with torch.no_grad(), torch.amp.autocast('cuda'):
                 # Process images in batch for efficiency
                 clip_inputs = processor(images=img_normalized, return_tensors='pt', do_rescale=False)
                 clip_inputs = {k: v.to(device, non_blocking=True) for k, v in clip_inputs.items()}
@@ -443,7 +443,7 @@ def evaluate(args, epoch, encoder_hidden_states, img, pipeline, accelerator, glo
     recon = grid_sample(img, bm_grid)  # warp image using predicted bm
     
     # Compute evaluation metrics
-    with torch.cuda.amp.autocast():
+    with torch.amp.autocast('cuda'):
         mse_metric = F.mse_loss(recon, img)
         
     # Log metrics and images
