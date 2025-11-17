@@ -151,11 +151,30 @@ bash download_doc3d.sh /path/to/output/directory
 - **Diffusers**: Hugging Face diffusion models library
 - **Transformers**: CLIP model for image conditioning
 - **Accelerate**: Multi-GPU training
-- **OpenCV**: Image processing
+- **OpenCV**: Image processing (uses opencv-python-headless for headless environments)
 - **Weights & Biases**: Experiment tracking
+
+## Environment Setup
+
+### Important: OpenCV Dependency
+This project uses `opencv-python-headless` instead of regular `opencv-python` to support headless/server environments without OpenGL dependencies.
+
+**Setup:**
+```bash
+bash setup_environment.sh
+```
+
+Or manually:
+```bash
+pip uninstall -y opencv-python opencv-contrib-python
+pip install -r requirements.txt
+```
+
+**Common Issue:** If you see `ImportError: libGL.so.1: cannot open shared object file`, it means `opencv-python` is installed instead of `opencv-python-headless`. Run the setup script to fix this.
 
 ## Notes
 - The project focuses on document unwarping using backward mapping fields
 - Multiple training approaches are implemented for comparison
 - The Doc3D dataset provides comprehensive 3D document information
 - All models output 2-channel backward mapping fields for image warping
+- Uses opencv-python-headless to avoid OpenGL dependencies in headless environments
