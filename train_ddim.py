@@ -415,7 +415,8 @@ def main(args):
             # 🛠️ Change 2: Modify checkpointing logic
             if accelerator.is_main_process and global_step % 100 == 0:
                 # Save checkpoint for multi-GPU training and let Accelerator handle the total_limit
-                accelerator.save_state(os.path.join(accelerator_config.project_dir, f"checkpoint-{global_step}"))
+                # With automatic_checkpoint_naming=True, accelerator.save_state() creates checkpoints/checkpoint_N automatically
+                accelerator.save_state()
                 
                 pipeline = FastDDIMPipeline(accelerator.unwrap_model(model), noise_scheduler)
                 evaluate(args, epoch, encoder_hidden_states, img, pipeline, accelerator, global_step)
