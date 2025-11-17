@@ -43,7 +43,21 @@ pip install -r requirements.txt
 bash download_doc3d.sh /path/to/output/directory
 ```
 
-### 3. Run Training
+### 3. Validate System (Recommended)
+
+Before training, validate your system to catch common issues:
+
+```bash
+python pre_training_check.py --dataset_name /path/to/doc3d
+```
+
+This checks:
+- Dependencies (opencv, torch, etc.)
+- Disk space availability
+- Dataset accessibility
+- Write permissions
+
+### 4. Run Training
 
 **Single training run:**
 ```bash
@@ -133,6 +147,63 @@ python run_with_check.py train_ddim.py --dataset_name /path/to/data [other args.
 
 This will check for OpenCV before starting training and provide clear error messages if dependencies are missing.
 
+### Error: Checkpoint Save Failed
+
+If you see this error during training:
+```
+RuntimeError: [enforce fail at inline_container.cc:858] . PytorchStreamWriter failed writing file
+```
+
+**Cause:** Unable to write checkpoint files, usually due to:
+- Disk full (no space left)
+- Write permission issues
+- Filesystem errors
+
+**Diagnosis:**
+
+Run the diagnostic script:
+```bash
+bash diagnose_checkpoint_error.sh
+```
+
+**Solutions:**
+
+1. **Check disk space:**
+   ```bash
+   df -h logs/  # Check available space
+   ```
+
+2. **Free up space:**
+   ```bash
+   # Remove old checkpoints
+   find logs -name 'checkpoint*' -type d -mtime +7 -exec rm -rf {} +
+   ```
+
+3. **Use different output directory:**
+   ```bash
+   python train_ddim.py --output_dir /path/to/larger/disk --dataset_name /path/to/data
+   ```
+
+4. **Pre-validate before training:**
+   ```bash
+   python pre_training_check.py --dataset_name /path/to/data
+   ```
+
+### Pre-Training Validation (Recommended)
+
+Before starting training, run comprehensive checks:
+
+```bash
+python pre_training_check.py --dataset_name /path/to/data --output_dir logs
+```
+
+This will check:
+- All required dependencies
+- Dataset accessibility
+- Disk space availability
+- Write permissions
+- System requirements
+
 ## Project Structure
 
 ### Training Scripts
@@ -150,7 +221,10 @@ This will check for OpenCV before starting training and provide clear error mess
 - `setup_environment.sh` - Complete environment setup (recommended)
 - `fix_opencv.sh` - Quick fix for OpenCV/OpenGL issues
 - `check_dependencies.py` - Interactive dependency checker
+- `check_system.py` - System requirements validator (disk, permissions)
+- `pre_training_check.py` - Comprehensive pre-training validation
 - `run_with_check.py` - Training wrapper with dependency validation
+- `diagnose_checkpoint_error.sh` - Diagnostic tool for checkpoint save errors
 
 ## Key Features
 
