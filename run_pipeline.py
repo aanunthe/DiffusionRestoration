@@ -27,13 +27,24 @@ def find_latest_checkpoint(log_dir, run_name_pattern):
         print(f"Error: Run directory not found: {run_dir}")
         return None
 
-    checkpoint_dirs = glob.glob(os.path.join(run_dir, "checkpoint-*"))
-    if not checkpoint_dirs:
-        print(f"Error: No checkpoints found in {run_dir}")
-        return None
+    # Check for checkpoints in the 'checkpoints' subdirectory (used by automatic_checkpoint_naming)
+    checkpoints_subdir = os.path.join(run_dir, "checkpoints")
+    if os.path.isdir(checkpoints_subdir):
+        checkpoint_dirs = glob.glob(os.path.join(checkpoints_subdir, "checkpoint_*"))
+        if not checkpoint_dirs:
+            print(f"Error: No checkpoints found in {checkpoints_subdir}")
+            return None
+        # Find the one with the highest step number (checkpoint_0, checkpoint_1, etc.)
+        latest_checkpoint = max(checkpoint_dirs, key=lambda d: int(d.split('_')[-1]))
+    else:
+        # Fallback: check for old-style checkpoint directories directly in run_dir
+        checkpoint_dirs = glob.glob(os.path.join(run_dir, "checkpoint-*"))
+        if not checkpoint_dirs:
+            print(f"Error: No checkpoints found in {run_dir}")
+            return None
+        # Find the one with the highest step number (checkpoint-100, checkpoint-200, etc.)
+        latest_checkpoint = max(checkpoint_dirs, key=lambda d: int(d.split('-')[-1]))
 
-    # Find the one with the highest step number
-    latest_checkpoint = max(checkpoint_dirs, key=lambda d: int(d.split('-')[-1]))
     print(f"Found latest checkpoint: {latest_checkpoint}")
     return latest_checkpoint
 
