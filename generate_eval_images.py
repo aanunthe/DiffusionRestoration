@@ -17,7 +17,6 @@ import torch.multiprocessing as mp
 from data_loader import Doc3d
 from train_ddim import FastDDIMPipeline # Re-use the pipeline from train_ddim
 from utils import grid_sample
-from parse_args import parse_args as parse_base_args # To pass a stub args to Doc3d
 
 def tensor_to_image(tensor):
     """Converts a [-1, 1] torch tensor to a [0, 255] numpy image."""
@@ -43,8 +42,10 @@ def main(args):
 
     # --- 2. Load Dataset ---
     print("Loading dataset...")
-    # Create a stub args object for Doc3d
-    stub_args = parse_base_args()
+    # Create a stub args object for Doc3d (only needs image_size attribute)
+    class StubArgs:
+        pass
+    stub_args = StubArgs()
     stub_args.image_size = args.image_size
     dataset = Doc3d(args.dataset_name, stub_args, resize=True)
     
