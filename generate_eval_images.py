@@ -114,6 +114,10 @@ def main(args):
 
     print(f"U-Net weights loaded successfully from: {unet_weights_path}")
 
+    # Move U-Net to device before creating pipeline (critical for torch.compile)
+    unet = unet.to(device)
+    print(f"U-Net moved to device: {device}")
+
     # Load CLIP model
     processor = CLIPProcessor.from_pretrained('openai/clip-vit-large-patch14')
     clip_model = CLIPModel.from_pretrained('openai/clip-vit-large-patch14')
