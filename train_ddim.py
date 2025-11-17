@@ -412,7 +412,7 @@ def main(args):
                 })
 
             # 🛠️ Change 2: Modify checkpointing logic
-            if accelerator.is_main_process and global_step % 100 == 0:
+            if accelerator.is_main_process and global_step % 10 == 0:  # Changed from 100 to 10 for testing
                 # Save checkpoint for multi-GPU training and let Accelerator handle the total_limit
                 # With automatic_checkpoint_naming=True, accelerator.save_state() creates checkpoints/checkpoint_N automatically
                 accelerator.save_state()
