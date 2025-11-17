@@ -428,7 +428,7 @@ def main(args):
         checkpoint_dirs = glob.glob(os.path.join(accelerator_config.project_dir, "checkpoint-*"))
         if not checkpoint_dirs:
             print(f"No checkpoints saved during training. Saving final checkpoint at step {global_step}...")
-            accelerator.save_state(os.path.join(accelerator_config.project_dir, f"checkpoint-{global_step}"))
+            accelerator.save_state()
 
 
 
