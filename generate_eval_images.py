@@ -59,9 +59,8 @@ def main(args):
 
     # --- 3. Load Model from Checkpoint ---
     print(f"Loading model from checkpoint: {args.checkpoint_path}")
-    
-    # Load the U-Net weights
-    # We load the full model first, then overwrite the state dict
+
+    # Create the U-Net model
     unet = UNet2DConditionModel(
         sample_size=288,
         in_channels=2,
@@ -76,20 +75,44 @@ def main(args):
         only_cross_attention=False,
         upcast_attention=False,
     )
-    
-    # Load the state dict from the checkpoint
-    # Assumes the unet weights are saved as 'pytorch_model.bin' by Accelerator
-    unet_weights_path = os.path.join(args.checkpoint_path, "pytorch_model.bin")
-    if not os.path.exists(unet_weights_path):
-        # Fallback for older/different accelerator saves
-        unet_weights_path = os.path.join(args.checkpoint_path, "unet", "diffusion_pytorch_model.bin")
-    
-    if not os.path.exists(unet_weights_path):
-        print(f"Error: Could not find unet weights at {unet_weights_path} or fallback.")
-        return
 
-    unet.load_state_dict(torch.load(unet_weights_path, map_location="cpu"))
-    print("U-Net weights loaded successfully.")
+    # Try multiple checkpoint formats that Accelerator might use
+    possible_paths = [
+        os.path.join(args.checkpoint_path, "pytorch_model.bin"),
+        os.path.join(args.checkpoint_path, "model.safetensors"),
+        os.path.join(args.checkpoint_path, "unet", "diffusion_pytorch_model.bin"),
+        os.path.join(args.checkpoint_path, "unet", "diffusion_pytorch_model.safetensors"),
+    ]
+
+    unet_weights_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            unet_weights_path = path
+            break
+
+    if unet_weights_path is None:
+        print(f"Error: Could not find model weights in checkpoint directory: {args.checkpoint_path}")
+        print(f"Tried the following paths:")
+        for path in possible_paths:
+            print(f"  - {path}")
+        print("\nCheckpoint directory contents:")
+        if os.path.exists(args.checkpoint_path):
+            for item in os.listdir(args.checkpoint_path):
+                print(f"  - {item}")
+        else:
+            print(f"  Checkpoint directory does not exist!")
+        import sys
+        sys.exit(1)
+
+    # Load the weights
+    if unet_weights_path.endswith('.safetensors'):
+        from safetensors.torch import load_file
+        state_dict = load_file(unet_weights_path)
+        unet.load_state_dict(state_dict)
+    else:
+        unet.load_state_dict(torch.load(unet_weights_path, map_location="cpu"))
+
+    print(f"U-Net weights loaded successfully from: {unet_weights_path}")
 
     # Load CLIP model
     processor = CLIPProcessor.from_pretrained('openai/clip-vit-large-patch14')
